@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Cloud, File, UploadIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const { toast } = useToast();
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -158,20 +159,24 @@ const FileUpload: React.FC<FileUploadProps> = ({
             )}
           </div>
 
-          <label htmlFor="file-upload" className="cursor-pointer">
-            <Button variant="outline" className="mt-2">
-              <UploadIcon className="mr-2 h-4 w-4" />
-              Select PDFs
-            </Button>
-            <input
-              id="file-upload"
-              type="file"
-              accept="application/pdf"
-              multiple
-              onChange={handleFileChange}
-              className="hidden"
-            />
-          </label>
+          <input
+            id="file-upload"
+            ref={inputRef}
+            type="file"
+            accept="application/pdf"
+            multiple
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-2"
+            onClick={() => inputRef.current?.click()}
+          >
+            <UploadIcon className="mr-2 h-4 w-4" />
+            Select PDFs
+          </Button>
         </div>
       </div>
 

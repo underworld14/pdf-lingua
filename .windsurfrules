@@ -17,3 +17,8 @@
 # Backend & Database
 - Use Next.js API routes for backend logic.
 - Use Prisma for database access.
+
+# Package manager
+- Use pnpm as the package manager.
+- To install dependencies, use `pnpm install`.
+- To run scripts, use `pnpm run <script-name>`.

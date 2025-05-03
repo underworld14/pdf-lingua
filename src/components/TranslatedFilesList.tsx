@@ -7,8 +7,10 @@ import { Card, CardContent } from '@/components/ui/card';
 export interface TranslatedFile {
   id: string;
   originalName: string;
+  translatedName: string;
+  originalUrl: string;
   translatedUrl: string;
-  language: string;
+  language?: string;
 }
 
 interface TranslatedFilesListProps {
@@ -37,7 +39,9 @@ const TranslatedFilesList: React.FC<TranslatedFilesListProps> = ({
                   </div>
                   <div>
                     <h4 className="font-medium text-gray-800 mb-1">{file.originalName}</h4>
-                    <p className="text-sm text-gray-500">Translated to {file.language}</p>
+                    {file.language && (
+                      <p className="text-sm text-gray-500">Translated to {file.language}</p>
+                    )}
                   </div>
                 </div>
                 <Button 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import FileUpload from "@/components/FileUpload";
 import TranslationForm from "@/components/TranslationForm";
@@ -92,10 +92,17 @@ const Index = () => {
       title: "Download started",
       description: `Your translated PDF "${file.originalName}" is being downloaded`,
     });
-    // In a real app, this would trigger an actual download
+    
+    // Create an anchor element and trigger download
+    const link = document.createElement('a');
+    link.href = file.translatedUrl;
+    link.download = file.translatedName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  const handleTranslate = () => {
+  const handleTranslate = async () => {
     if (files.length === 0 || !selectedLanguage) {
       toast({
         variant: "destructive",
@@ -108,53 +115,121 @@ const Index = () => {
 
     setIsTranslating(true);
     setShowProgress(true);
-
-    // Get language label for display
-    const languageLabel =
-      languages.find((lang) => lang.value === selectedLanguage)?.label ||
-      selectedLanguage;
-
-    // Simulate the translation progress
-    // Step 1: Upload
-    updateProgress("upload");
-    setTimeout(() => {
-      completeStep("upload", 25);
-
-      // Step 2: Extract
-      updateProgress("extract");
-      setTimeout(() => {
-        completeStep("extract", 50);
-
-        // Step 3: Translate
-        updateProgress("translate");
-        setTimeout(() => {
-          completeStep("translate", 75);
-
-          // Step 4: Generate
-          updateProgress("generate");
-          setTimeout(() => {
-            completeStep("generate", 100);
-            setIsTranslating(false);
-
-            // Create translated files from the uploaded files
-            const newTranslatedFiles = files.map((file, index) => ({
+    
+    try {
+      // Create form data for upload
+      const formData = new FormData();
+      files.forEach(file => {
+        formData.append('files', file);
+      });
+      formData.append('language', selectedLanguage);
+      
+      // Upload files and get job ID
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Upload failed');
+      }
+      
+      const { jobId } = await response.json();
+      
+      // Start progress tracking with SSE
+      const eventSource = new EventSource(`/api/jobs/${jobId}/progress`);
+      
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        // Update progress based on current step
+        if (data.progress) {
+          const { step, percentage } = data.progress;
+          
+          // Update the UI based on current step
+          if (step === 'upload') {
+            updateProgress('upload');
+            setProgressPercentage(25);
+          } else if (step === 'extract') {
+            completeStep('upload', 25);
+            updateProgress('extract');
+            setProgressPercentage(50);
+          } else if (step === 'translate') {
+            completeStep('extract', 50);
+            updateProgress('translate');
+            setProgressPercentage(75);
+          } else if (step === 'generate') {
+            completeStep('translate', 75);
+            updateProgress('generate');
+            setProgressPercentage(100);
+          }
+        }
+        
+        // If job is completed, show results
+        if (data.status === 'completed' && data.results && data.results.length > 0) {
+          eventSource.close();
+          setIsTranslating(false);
+          
+          // Create translated files from the results
+          const newTranslatedFiles = data.results.map((result: any, index: number) => ({
               id: `file-${Date.now()}-${index}`,
-              originalName: file.name,
-              translatedUrl: `dummy-translated-${file.name}`,
-              language: languageLabel,
+              originalName: result.originalName,
+              translatedName: result.translatedName,
+              originalUrl: result.originalUrl,
+              translatedUrl: result.translatedUrl,
             }));
 
             setTranslatedFiles(newTranslatedFiles);
             setTranslationComplete(true);
 
+            // Get language label for display
+            const languageLabel =
+              languages.find((lang) => lang.value === selectedLanguage)?.label ||
+              selectedLanguage;
+
             toast({
               title: "Translation complete!",
               description: `${files.length} PDF(s) have been translated to ${languageLabel}`,
             });
-          }, 1000);
-        }, 1500);
-      }, 1000);
-    }, 1000);
+          }
+          
+          // If job failed, show error
+          if (data.status === 'failed') {
+            eventSource.close();
+            setIsTranslating(false);
+            setShowProgress(false);
+            
+            toast({
+              variant: "destructive",
+              title: "Translation failed",
+              description: "Failed to process your files. Please try again.",
+            });
+          }
+        };
+        
+        eventSource.onerror = () => {
+          eventSource.close();
+          setIsTranslating(false);
+          setShowProgress(false);
+          
+          toast({
+            variant: "destructive",
+            title: "Connection error",
+            description: "Lost connection to the server. Please try again.",
+          });
+        };
+      
+    } catch (error) {
+      setIsTranslating(false);
+      setShowProgress(false);
+      
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to start translation",
+      });
+    }
   };
 
   const handleNewTranslation = () => {
