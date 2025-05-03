@@ -1,0 +1,19 @@
+# General Code Style & Formatting
+- Follow the Airbnb Style Guide for code formatting.
+- Use PascalCase for React component file names (e.g., UserCard.tsx, not user-card.tsx).
+- Prefer named exports for components.
+
+# Project Structure & Architecture
+- Follow Next.js patterns and use the App Router.
+- Correctly determine when to use server vs. client components in Next.js.
+
+# Styling & UI
+- Use Tailwind CSS v4 for styling.
+- Use Shadcn UI for components.
+
+# State Management & Logic
+- Use React Context for state management.
+
+# Backend & Database
+- Use Next.js API routes for backend logic.
+- Use Prisma for database access.

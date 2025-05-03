@@ -1,103 +1,272 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import FileUpload from "@/components/FileUpload";
+import TranslationForm from "@/components/TranslationForm";
+import Header from "@/components/Header";
+import ProgressTracker, { ProgressStep } from "@/components/ProgressTracker";
+import TranslatedFilesList, {
+  TranslatedFile,
+} from "@/components/TranslatedFilesList";
+import { Button } from "@/components/ui/button";
+
+const Index = () => {
+  const [files, setFiles] = useState<File[]>([]);
+  const [selectedLanguage, setSelectedLanguage] = useState("");
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [showProgress, setShowProgress] = useState(false);
+  const [progressPercentage, setProgressPercentage] = useState(0);
+  const [translatedFiles, setTranslatedFiles] = useState<TranslatedFile[]>([]);
+  const [translationComplete, setTranslationComplete] = useState(false);
+  const { toast } = useToast();
+
+  const initialSteps: ProgressStep[] = [
+    {
+      id: "upload",
+      label: "Uploading PDFs to Server",
+      completed: false,
+      current: false,
+    },
+    {
+      id: "extract",
+      label: "Extracting contents",
+      completed: false,
+      current: false,
+    },
+    {
+      id: "translate",
+      label: "Translating PDFs",
+      completed: false,
+      current: false,
+    },
+    {
+      id: "generate",
+      label: "Successfully Generated PDFs",
+      completed: false,
+      current: false,
+    },
+  ];
+
+  const [steps, setSteps] = useState<ProgressStep[]>(initialSteps);
+
+  const updateProgress = (stepId: string) => {
+    setSteps((prevSteps) =>
+      prevSteps.map((step) => {
+        // Mark previous steps as completed
+        if (step.id === stepId) {
+          return { ...step, current: true };
+        } else if (step.current) {
+          return { ...step, current: false, completed: true };
+        }
+        return step;
+      })
+    );
+  };
+
+  const completeStep = (stepId: string, percentage: number) => {
+    setProgressPercentage(percentage);
+    setSteps((prevSteps) =>
+      prevSteps.map((step) =>
+        step.id === stepId ? { ...step, completed: true, current: false } : step
+      )
+    );
+  };
+
+  const handleFileSelect = (selectedFiles: File[]) => {
+    setFiles(selectedFiles);
+    // Reset states when new files are uploaded
+    setShowProgress(false);
+    setProgressPercentage(0);
+    setSteps(initialSteps);
+    setTranslatedFiles([]);
+    setTranslationComplete(false);
+  };
+
+  const handleLanguageChange = (language: string) => {
+    setSelectedLanguage(language);
+  };
+
+  const handleDownload = (file: TranslatedFile) => {
+    toast({
+      title: "Download started",
+      description: `Your translated PDF "${file.originalName}" is being downloaded`,
+    });
+    // In a real app, this would trigger an actual download
+  };
+
+  const handleTranslate = () => {
+    if (files.length === 0 || !selectedLanguage) {
+      toast({
+        variant: "destructive",
+        title: "Missing information",
+        description:
+          "Please upload at least one PDF file and select a language.",
+      });
+      return;
+    }
+
+    setIsTranslating(true);
+    setShowProgress(true);
+
+    // Get language label for display
+    const languageLabel =
+      languages.find((lang) => lang.value === selectedLanguage)?.label ||
+      selectedLanguage;
+
+    // Simulate the translation progress
+    // Step 1: Upload
+    updateProgress("upload");
+    setTimeout(() => {
+      completeStep("upload", 25);
+
+      // Step 2: Extract
+      updateProgress("extract");
+      setTimeout(() => {
+        completeStep("extract", 50);
+
+        // Step 3: Translate
+        updateProgress("translate");
+        setTimeout(() => {
+          completeStep("translate", 75);
+
+          // Step 4: Generate
+          updateProgress("generate");
+          setTimeout(() => {
+            completeStep("generate", 100);
+            setIsTranslating(false);
+
+            // Create translated files from the uploaded files
+            const newTranslatedFiles = files.map((file, index) => ({
+              id: `file-${Date.now()}-${index}`,
+              originalName: file.name,
+              translatedUrl: `dummy-translated-${file.name}`,
+              language: languageLabel,
+            }));
+
+            setTranslatedFiles(newTranslatedFiles);
+            setTranslationComplete(true);
+
+            toast({
+              title: "Translation complete!",
+              description: `${files.length} PDF(s) have been translated to ${languageLabel}`,
+            });
+          }, 1000);
+        }, 1500);
+      }, 1000);
+    }, 1000);
+  };
+
+  const handleNewTranslation = () => {
+    // Reset all states to initial values
+    setFiles([]);
+    setSelectedLanguage("");
+    setShowProgress(false);
+    setProgressPercentage(0);
+    setSteps(initialSteps);
+    setTranslationComplete(false);
+  };
+
+  const languages = [
+    { value: "en", label: "English" },
+    { value: "es", label: "Spanish" },
+    { value: "fr", label: "French" },
+    { value: "de", label: "German" },
+    { value: "it", label: "Italian" },
+    { value: "pt", label: "Portuguese" },
+    { value: "ru", label: "Russian" },
+    { value: "zh", label: "Chinese" },
+    { value: "ja", label: "Japanese" },
+    { value: "ko", label: "Korean" },
+    { value: "ar", label: "Arabic" },
+    { value: "hi", label: "Hindi" },
+  ];
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="min-h-screen bg-gradient-to-b from-white to-blue-50">
+      <Header />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+      <main className="container mx-auto px-4 py-12">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Translate PDFs with AI
+            </h2>
+            <p className="text-xl text-gray-600">
+              Upload your PDFs and instantly translate them to any language
+              using advanced AI.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
+            {!showProgress && !translationComplete && (
+              <>
+                <FileUpload
+                  onFileSelect={handleFileSelect}
+                  maxFiles={5}
+                  maxFileSize={5}
+                />
+
+                <div className="w-full border-t border-gray-200 my-6"></div>
+
+                <TranslationForm
+                  onLanguageChange={handleLanguageChange}
+                  onTranslate={handleTranslate}
+                  selectedLanguage={selectedLanguage}
+                  isFileUploaded={files.length > 0}
+                />
+              </>
+            )}
+
+            <ProgressTracker
+              steps={steps}
+              visible={showProgress && !translationComplete}
+              progressPercentage={progressPercentage}
+              onDownload={() => {}} // Not used for individual files anymore
+              translatedUrl={
+                translatedFiles.length > 0
+                  ? translatedFiles[0].translatedUrl
+                  : undefined
+              }
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+
+            {translationComplete && (
+              <div className="space-y-6">
+                <TranslatedFilesList
+                  files={translatedFiles}
+                  onDownload={handleDownload}
+                />
+
+                <div className="border-t border-gray-100 pt-6 mt-8">
+                  <Button
+                    onClick={handleNewTranslation}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Translate More PDFs
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {isTranslating && !showProgress && (
+              <div className="mt-6 text-center">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+                <p className="mt-2 text-gray-600">
+                  Translating your documents...
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="text-center text-gray-500 text-sm">
+            <p>Supports PDF documents up to 5MB in size.</p>
+            <p className="mt-1">Instant translations for over 100 languages.</p>
+          </div>
         </div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
-}
+};
+
+export default Index;
