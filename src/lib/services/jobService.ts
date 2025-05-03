@@ -117,12 +117,29 @@ export class JobService {
    * @returns Formatted job data for client
    */
   formatJobResponse(job: Job & { files: File[] }) {
+    // Map the step name to match client-side expectations
+    const mapStepName = (step: string | null | undefined): string => {
+      if (!step) return 'upload';
+      
+      // Convert to lowercase to match client-side step IDs
+      const stepLower = step.toLowerCase();
+      
+      // Map to one of the client-side step IDs: upload, extract, translate, generate
+      switch (stepLower) {
+        case 'upload': return 'upload';
+        case 'extract': return 'extract';
+        case 'translate': return 'translate';
+        case 'generate': return 'generate';
+        default: return 'upload';
+      }
+    };
+    
     return {
       id: job.id,
       status: job.status,
       language: job.language,
       progress: {
-        step: job.currentStep?.toLowerCase() || 'upload',
+        step: mapStepName(job.currentStep),
         percentage: job.percentage
       },
       results: job.files

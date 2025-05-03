@@ -125,8 +125,14 @@ async function processJob(jobId: string) {
     const translatedDir = path.join(process.cwd(), "uploads", jobId, "translated");
     await mkdir(translatedDir, { recursive: true });
     
+    // Add a small delay to ensure the client sees the upload step
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
     // Update to extraction step
     await jobService.updateJobProgress(jobId, "PROCESSING" as JobStatus, "EXTRACT" as ProcessStep, 50);
+    
+    // Add a small delay to ensure the client sees the extraction step
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     // Process extraction in the background
     setTimeout(async () => {
@@ -168,6 +174,9 @@ async function extractAndTranslate(jobId: string, pdfService: PdfService, jobSer
     // Update to translation step
     await jobService.updateJobProgress(jobId, "PROCESSING" as JobStatus, "TRANSLATE" as ProcessStep, 75);
     
+    // Add a small delay to ensure the client sees the translation step
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
     // Process translation in the background
     setTimeout(async () => {
       await generateFinalPdfs(jobId, pdfService, jobService, extractedContents);
@@ -193,6 +202,9 @@ async function generateFinalPdfs(
       console.error(`Job ${jobId} not found`);
       return;
     }
+    
+    // Update to generate step
+    await jobService.updateJobProgress(jobId, "PROCESSING" as JobStatus, "GENERATE" as ProcessStep, 100);
     
     const translatedDir = path.join(process.cwd(), "uploads", jobId, "translated");
     
@@ -220,6 +232,9 @@ async function generateFinalPdfs(
         console.error(`Error processing file ${filePath}:`, translationError);
       }
     }
+    
+    // Add a small delay to ensure the client sees the generation step
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     // Update to complete step
     await jobService.updateJobProgress(jobId, "COMPLETED" as JobStatus, "GENERATE" as ProcessStep, 100);

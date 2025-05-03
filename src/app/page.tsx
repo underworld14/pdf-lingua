@@ -117,6 +117,10 @@ const Index = () => {
     setShowProgress(true);
     
     try {
+      // Immediately show upload in progress
+      updateProgress('upload');
+      setProgressPercentage(25);
+      
       // Create form data for upload
       const formData = new FormData();
       files.forEach(file => {
@@ -137,47 +141,63 @@ const Index = () => {
       
       const { jobId } = await response.json();
       
+      // Mark upload as completed immediately after successful API response
+      completeStep('upload', 25);
+      updateProgress('extract');
+      setProgressPercentage(50);
+      
       // Start progress tracking with SSE
       const eventSource = new EventSource(`/api/jobs/${jobId}/progress`);
       
       eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);
+        console.log('SSE update:', data);
         
         // Update progress based on current step
         if (data.progress) {
           const { step, percentage } = data.progress;
           
+          // Set the exact percentage from the server
+          setProgressPercentage(percentage);
+          
           // Update the UI based on current step
-          if (step === 'upload') {
-            updateProgress('upload');
-            setProgressPercentage(25);
-          } else if (step === 'extract') {
+          if (step === 'extract') {
             completeStep('upload', 25);
             updateProgress('extract');
-            setProgressPercentage(50);
           } else if (step === 'translate') {
+            completeStep('upload', 25);
             completeStep('extract', 50);
             updateProgress('translate');
-            setProgressPercentage(75);
           } else if (step === 'generate') {
+            completeStep('upload', 25);
+            completeStep('extract', 50);
             completeStep('translate', 75);
             updateProgress('generate');
-            setProgressPercentage(100);
           }
         }
         
         // If job is completed, show results
-        if (data.status === 'completed' && data.results && data.results.length > 0) {
+        if (data.status === 'COMPLETED') {
+          // Complete all steps
+          completeStep('upload', 25);
+          completeStep('extract', 50);
+          completeStep('translate', 75);
+          completeStep('generate', 100);
+          setProgressPercentage(100);
+          
           eventSource.close();
           setIsTranslating(false);
           
-          // Create translated files from the results
-          const newTranslatedFiles = data.results.map((result: any, index: number) => ({
-              id: `file-${Date.now()}-${index}`,
+          // If there are results, show them
+          if (data.results && data.results.length > 0) {
+            // Create translated files from the results
+            const newTranslatedFiles = data.results.map((result: any) => ({
+              id: result.id || `file-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
               originalName: result.originalName,
               translatedName: result.translatedName,
               originalUrl: result.originalUrl,
               translatedUrl: result.translatedUrl,
+              language: selectedLanguage,
             }));
 
             setTranslatedFiles(newTranslatedFiles);
@@ -192,6 +212,7 @@ const Index = () => {
               title: "Translation complete!",
               description: `${files.length} PDF(s) have been translated to ${languageLabel}`,
             });
+          }
           }
           
           // If job failed, show error

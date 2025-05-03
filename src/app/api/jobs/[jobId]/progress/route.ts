@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { JobService } from "@/lib/services/jobService";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { jobId: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ jobId: string }> }) {
+  const params = await props.params;
   // Ensure params are properly awaited in Next.js App Router
   const { jobId } = params;
-  
+
   // Initialize job service
   const jobService = new JobService();
-  
+
   // Check if job exists
   const job = await jobService.getJob(jobId);
   if (!job) {
@@ -19,7 +17,7 @@ export async function GET(
       { status: 404 }
     );
   }
-  
+
   // Set up SSE
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -63,7 +61,7 @@ export async function GET(
       });
     }
   });
-  
+
   return new NextResponse(stream, {
     headers: {
       "Content-Type": "text/event-stream",

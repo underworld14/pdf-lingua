@@ -5,14 +5,15 @@ import { JobService } from "@/lib/services/jobService";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { jobId: string; type: string; filename: string } }
+  props: { params: Promise<{ jobId: string; type: string; filename: string }> }
 ) {
+  const params = await props.params;
   // Ensure params are properly awaited in Next.js App Router
   const { jobId, type, filename } = params;
-  
+
   // Initialize job service
   const jobService = new JobService();
-  
+
   // Check if job exists
   const job = await jobService.getJob(jobId);
   if (!job) {
@@ -21,7 +22,7 @@ export async function GET(
       { status: 404 }
     );
   }
-  
+
   // Validate the type
   if (type !== "original" && type !== "translated") {
     return NextResponse.json(
@@ -29,7 +30,7 @@ export async function GET(
       { status: 400 }
     );
   }
-  
+
   // Get file path
   let filePath;
   if (type === "original") {
@@ -75,7 +76,7 @@ export async function GET(
       }
     }
   }
-  
+
   try {
     // Check if file exists
     const fileExists = fs.existsSync(filePath);
