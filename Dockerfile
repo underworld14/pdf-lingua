@@ -37,9 +37,6 @@ RUN pnpm build
 FROM base AS runner
 WORKDIR /app
 
-# install prisma
-RUN npm install -g prisma@6.7.0
-
 # Create a non-root user
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
