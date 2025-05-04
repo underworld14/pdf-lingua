@@ -1,0 +1,32 @@
+lingua.luminapdf.xyz {
+    # Enable automatic HTTPS with Let's Encrypt
+    tls internal
+
+    # Reverse proxy to the Next.js application
+    reverse_proxy app:3000
+
+    # Log settings
+    log {
+        output file /var/log/caddy/access.log
+        format json
+    }
+
+    # Enable compression
+    encode gzip
+
+    # Set security headers
+    header {
+        # Enable HSTS
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        # Prevent MIME type sniffing
+        X-Content-Type-Options "nosniff"
+        # Clickjacking protection
+        X-Frame-Options "SAMEORIGIN"
+        # XSS protection
+        X-XSS-Protection "1; mode=block"
+        # Referrer policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Content Security Policy
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'"
+    }
+}
