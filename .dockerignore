@@ -41,3 +41,13 @@ docker-compose.yml
 # IDE
 .idea
 .vscode
+
+# uploads
+/uploads
+
+# database
+dev.db
+
+# generated
+/src/generated
+

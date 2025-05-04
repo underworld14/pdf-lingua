@@ -9,7 +9,8 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=file:/app/prisma/dev.db
+    env_file:
+      - .env
     volumes:
       - uploads:/app/uploads
       - sqlite-data:/app/prisma

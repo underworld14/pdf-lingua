@@ -37,8 +37,8 @@ RUN pnpm build
 FROM base AS runner
 WORKDIR /app
 
-# Install necessary packages including tini and sqlite
-RUN apk add --no-cache tini sqlite
+# install prisma
+RUN npm install -g prisma@6.7.0
 
 # Create a non-root user
 RUN addgroup --system --gid 1001 nodejs && \
@@ -48,6 +48,9 @@ RUN addgroup --system --gid 1001 nodejs && \
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 ENV PORT 3000
+ENV DATABASE_URL=file:./dev.db
+ENV CHECKPOINT_DISABLE=1
+ENV DISABLE_PRISMA_TELEMETRY=true
 
 # Copy necessary files for the application
 COPY --from=builder --chown=nextjs:nodejs /app/next.config.ts ./
@@ -59,11 +62,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 # Create uploads directory and make it writable for the nextjs user
 RUN mkdir -p /app/uploads && chown -R nextjs:nodejs /app/uploads
 
-# Copy startup script
-COPY --chown=nextjs:nodejs docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
 USER nextjs
 EXPOSE 3000
 
-ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]
+ENTRYPOINT ["node", "server.js"]

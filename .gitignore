@@ -44,7 +44,7 @@ next-env.d.ts
 /uploads
 
 # database
-dev.db
+dev.db*
 
 # generated
 /src/generated
