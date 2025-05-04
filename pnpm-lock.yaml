@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  pdf-parse:
+    hash: 296006110e1bd6272775dfb79c4457d0e6478c6bdb962ce2473220d6bb914693
+    path: patches/pdf-parse.patch
+
 importers:
 
   .:
@@ -43,7 +48,7 @@ importers:
         version: 4.97.0(zod@3.24.3)
       pdf-parse:
         specifier: ^1.1.1
-        version: 1.1.1
+        version: 1.1.1(patch_hash=296006110e1bd6272775dfb79c4457d0e6478c6bdb962ce2473220d6bb914693)
       pdfjs-dist:
         specifier: ^5.2.133
         version: 5.2.133
@@ -4959,7 +4964,7 @@ snapshots:
 
   path-to-regexp@8.2.0: {}
 
-  pdf-parse@1.1.1:
+  pdf-parse@1.1.1(patch_hash=296006110e1bd6272775dfb79c4457d0e6478c6bdb962ce2473220d6bb914693):
     dependencies:
       debug: 3.2.7
       node-ensure: 0.0.0
