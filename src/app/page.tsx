@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import FileUpload from "@/components/FileUpload";
 import TranslationForm from "@/components/TranslationForm";
@@ -92,9 +92,9 @@ const Index = () => {
       title: "Download started",
       description: `Your translated PDF "${file.originalName}" is being downloaded`,
     });
-    
+
     // Create an anchor element and trigger download
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = file.translatedUrl;
     link.download = file.translatedName;
     document.body.appendChild(link);
@@ -115,84 +115,85 @@ const Index = () => {
 
     setIsTranslating(true);
     setShowProgress(true);
-    
+
     try {
       // Immediately show upload in progress
-      updateProgress('upload');
-      setProgressPercentage(25);
-      
+      updateProgress("upload");
+
       // Create form data for upload
       const formData = new FormData();
-      files.forEach(file => {
-        formData.append('files', file);
+      files.forEach((file) => {
+        formData.append("files", file);
       });
-      formData.append('language', selectedLanguage);
-      
+      formData.append("language", selectedLanguage);
+
       // Upload files and get job ID
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Upload failed');
+        throw new Error(errorData.error || "Upload failed");
       }
-      
+
       const { jobId } = await response.json();
-      
+
       // Mark upload as completed immediately after successful API response
-      completeStep('upload', 25);
-      updateProgress('extract');
-      setProgressPercentage(50);
-      
+      completeStep("upload", 25);
+      updateProgress("extract");
+
       // Start progress tracking with SSE
       const eventSource = new EventSource(`/api/jobs/${jobId}/progress`);
-      
+
       eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        console.log('SSE update:', data);
-        
+
         // Update progress based on current step
         if (data.progress) {
           const { step, percentage } = data.progress;
-          
+
           // Set the exact percentage from the server
           setProgressPercentage(percentage);
-          
+
           // Update the UI based on current step
-          if (step === 'extract') {
-            completeStep('upload', 25);
-            updateProgress('extract');
-          } else if (step === 'translate') {
-            completeStep('upload', 25);
-            completeStep('extract', 50);
-            updateProgress('translate');
-          } else if (step === 'generate') {
-            completeStep('upload', 25);
-            completeStep('extract', 50);
-            completeStep('translate', 75);
-            updateProgress('generate');
+          if (step === "extract") {
+            completeStep("upload", 25);
+            updateProgress("extract");
+          } else if (step === "translate") {
+            completeStep("upload", 25);
+            completeStep("extract", 50);
+            updateProgress("translate");
+          } else if (step === "generate") {
+            completeStep("upload", 25);
+            completeStep("extract", 50);
+            completeStep("translate", 75);
+            updateProgress("generate");
           }
         }
-        
+
         // If job is completed, show results
-        if (data.status === 'COMPLETED') {
+        if (data.status === "COMPLETED") {
           // Complete all steps
-          completeStep('upload', 25);
-          completeStep('extract', 50);
-          completeStep('translate', 75);
-          completeStep('generate', 100);
+          completeStep("upload", 25);
+          completeStep("extract", 50);
+          completeStep("translate", 75);
+          completeStep("generate", 100);
           setProgressPercentage(100);
-          
+
           eventSource.close();
           setIsTranslating(false);
-          
+
           // If there are results, show them
           if (data.results && data.results.length > 0) {
             // Create translated files from the results
             const newTranslatedFiles = data.results.map((result: any) => ({
-              id: result.id || `file-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+              id:
+                result.id ||
+                `file-${Date.now()}-${Math.random()
+                  .toString(36)
+                  .substring(2, 9)}`,
               originalName: result.originalName,
               translatedName: result.translatedName,
               originalUrl: result.originalUrl,
@@ -205,50 +206,52 @@ const Index = () => {
 
             // Get language label for display
             const languageLabel =
-              languages.find((lang) => lang.value === selectedLanguage)?.label ||
-              selectedLanguage;
+              languages.find((lang) => lang.value === selectedLanguage)
+                ?.label || selectedLanguage;
 
             toast({
               title: "Translation complete!",
               description: `${files.length} PDF(s) have been translated to ${languageLabel}`,
             });
           }
-          }
-          
-          // If job failed, show error
-          if (data.status === 'failed') {
-            eventSource.close();
-            setIsTranslating(false);
-            setShowProgress(false);
-            
-            toast({
-              variant: "destructive",
-              title: "Translation failed",
-              description: "Failed to process your files. Please try again.",
-            });
-          }
-        };
-        
-        eventSource.onerror = () => {
+        }
+
+        // If job failed, show error
+        if (data.status === "failed") {
           eventSource.close();
           setIsTranslating(false);
           setShowProgress(false);
-          
+
           toast({
             variant: "destructive",
-            title: "Connection error",
-            description: "Lost connection to the server. Please try again.",
+            title: "Translation failed",
+            description: "Failed to process your files. Please try again.",
           });
-        };
-      
+        }
+      };
+
+      eventSource.onerror = () => {
+        eventSource.close();
+        setIsTranslating(false);
+        setShowProgress(false);
+
+        toast({
+          variant: "destructive",
+          title: "Connection error",
+          description: "Lost connection to the server. Please try again.",
+        });
+      };
     } catch (error) {
       setIsTranslating(false);
       setShowProgress(false);
-      
+
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to start translation",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to start translation",
       });
     }
   };
@@ -264,18 +267,26 @@ const Index = () => {
   };
 
   const languages = [
-    { value: "en", label: "English" },
-    { value: "es", label: "Spanish" },
-    { value: "fr", label: "French" },
-    { value: "de", label: "German" },
-    { value: "it", label: "Italian" },
-    { value: "pt", label: "Portuguese" },
-    { value: "ru", label: "Russian" },
-    { value: "zh", label: "Chinese" },
-    { value: "ja", label: "Japanese" },
-    { value: "ko", label: "Korean" },
-    { value: "ar", label: "Arabic" },
-    { value: "hi", label: "Hindi" },
+    { value: "english", label: "English" },
+    { value: "spanish", label: "Spanish" },
+    { value: "french", label: "French" },
+    { value: "german", label: "German" },
+    { value: "italian", label: "Italian" },
+    { value: "portuguese", label: "Portuguese" },
+    { value: "russian", label: "Russian" },
+    { value: "chinese", label: "Chinese" },
+    { value: "japanese", label: "Japanese" },
+    { value: "korean", label: "Korean" },
+    { value: "arabic", label: "Arabic" },
+    { value: "hindi", label: "Hindi" },
+    { value: "dutch", label: "Dutch" },
+    { value: "swedish", label: "Swedish" },
+    { value: "polish", label: "Polish" },
+    { value: "turkish", label: "Turkish" },
+    { value: "vietnamese", label: "Vietnamese" },
+    { value: "thai", label: "Thai" },
+    { value: "indonesian", label: "Indonesian" },
+    { value: "greek", label: "Greek" },
   ];
 
   return (
