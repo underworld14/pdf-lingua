@@ -43,4 +43,11 @@ next-env.d.ts
 # uploads
 /uploads
 
+# database
+dev.db
+
+# generated
+/src/generated
+
+
 

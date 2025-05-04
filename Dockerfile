@@ -2,17 +2,18 @@
 FROM node:22-alpine AS base
 WORKDIR /app
 
-# Install libc compatibility package and enable pnpm
-RUN apk add --no-cache libc6-compat
-RUN corepack enable
-RUN corepack prepare pnpm@10.10 --activate
+# Install pnpm
+RUN npm install -g pnpm@10.10.0
 
 # Stage 1: Dependencies
 FROM base AS deps
 WORKDIR /app
 
 # Copy package files
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml ./
+
+# Copy patches
+COPY patches ./patches
 
 # Install dependencies using pnpm
 RUN pnpm install --frozen-lockfile
@@ -26,7 +27,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Generate Prisma client
-RUN npx prisma generate
+RUN pnpx prisma generate
 
 # Build the Next.js application
 ENV NEXT_TELEMETRY_DISABLED 1
@@ -49,7 +50,7 @@ ENV NEXT_TELEMETRY_DISABLED 1
 ENV PORT 3000
 
 # Copy necessary files for the application
-COPY --from=builder --chown=nextjs:nodejs /app/next.config.mjs ./
+COPY --from=builder --chown=nextjs:nodejs /app/next.config.ts ./
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
