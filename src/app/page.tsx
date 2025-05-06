@@ -3,8 +3,10 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import FileUpload from "@/components/FileUpload";
 import TranslationForm from "@/components/TranslationForm";
+import LoginButton from "@/components/LoginButton";
 import Header from "@/components/Header";
 
 const Index = () => {
@@ -13,6 +15,7 @@ const Index = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const { isAuthenticated, isLoading } = useAuth();
 
   const handleFileSelect = (selectedFiles: File[]) => {
     setFiles(selectedFiles);
@@ -23,6 +26,16 @@ const Index = () => {
   };
 
   const handleTranslate = async () => {
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      toast({
+        variant: "destructive",
+        title: "Authentication required",
+        description: "Please sign in with Google to translate your documents.",
+      });
+      return;
+    }
+    
     if (files.length === 0 || !selectedLanguage) {
       toast({
         variant: "destructive",
@@ -89,30 +102,50 @@ const Index = () => {
           </div>
 
           <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-            <FileUpload
-              onFileSelect={handleFileSelect}
-              maxFiles={5}
-              maxFileSize={5}
-            />
-
-            <div className="w-full border-t border-gray-200 my-6"></div>
-
-            <TranslationForm
-              onLanguageChange={handleLanguageChange}
-              onTranslate={handleTranslate}
-              selectedLanguage={selectedLanguage}
-              isFileUploaded={files.length > 0}
-              isSubmitting={isSubmitting}
-            />
-
-            {isSubmitting && (
-              <div className="mt-6 text-center">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
-                <p className="mt-2 text-gray-600">
-                  Uploading your documents...
-                </p>
-              </div>
-            )}
+              <>
+                <FileUpload
+                  onFileSelect={handleFileSelect}
+                  maxFiles={5}
+                  maxFileSize={5}
+                />
+                
+                <div className="w-full border-t border-gray-200 my-6"></div>
+                
+                {!isAuthenticated ? (
+                  <div className="flex flex-col items-center justify-center space-y-4 py-2">
+                    <div className="text-center mb-2">
+                      <h3 className="text-lg font-semibold mb-2">Sign in to translate your documents</h3>
+                      <p className="text-gray-500 text-sm mb-4">Please sign in with your Google account to continue</p>
+                      {isLoading ? (
+                        <div className="flex justify-center items-center py-2">
+                          <div className="inline-block h-6 w-6 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                        </div>
+                      ) : (
+                        <LoginButton callbackURL="/" className="w-full max-w-xs" />
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <TranslationForm
+                      onLanguageChange={handleLanguageChange}
+                      onTranslate={handleTranslate}
+                      selectedLanguage={selectedLanguage}
+                      isFileUploaded={files.length > 0}
+                      isSubmitting={isSubmitting}
+                    />
+                    
+                    {isSubmitting && (
+                      <div className="mt-6 text-center">
+                        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+                        <p className="mt-2 text-gray-600">
+                          Uploading your documents...
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
           </div>
 
           <div className="text-center text-gray-500 text-sm">
