@@ -14,6 +14,7 @@ interface TranslationFormProps {
   onTranslate: () => void;
   selectedLanguage: string;
   isFileUploaded: boolean;
+  isSubmitting?: boolean;
 }
 
 const languages = [
@@ -44,6 +45,7 @@ const TranslationForm: React.FC<TranslationFormProps> = ({
   onTranslate,
   selectedLanguage,
   isFileUploaded,
+  isSubmitting = false,
 }) => {
   return (
     <div className="w-full space-y-4">
@@ -70,11 +72,11 @@ const TranslationForm: React.FC<TranslationFormProps> = ({
 
       <Button
         className="w-full"
-        disabled={!isFileUploaded || !selectedLanguage}
+        disabled={!isFileUploaded || !selectedLanguage || isSubmitting}
         onClick={onTranslate}
       >
         <Languages className="mr-2 h-4 w-4" />
-        Translate PDF
+        {isSubmitting ? 'Processing...' : 'Translate PDF'}
       </Button>
 
       {!isFileUploaded && (
