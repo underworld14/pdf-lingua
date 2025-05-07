@@ -8,6 +8,8 @@ services:
     # Remove exposed port from app service since Caddy will handle external connections
     expose:
       - "3000"
+    ports:
+      - "3000:3000"
     environment:
       - NODE_ENV=production
     env_file:
@@ -19,20 +21,20 @@ services:
     networks:
       - app_network
       
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    networks:
-      - app_network
-    depends_on:
-      - app
+  # caddy:
+  #   image: caddy:2-alpine
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./Caddyfile:/etc/caddy/Caddyfile:ro
+  #     - caddy_data:/data
+  #     - caddy_config:/config
+  #   networks:
+  #     - app_network
+  #   depends_on:
+  #     - app
 
 volumes:
   uploads:

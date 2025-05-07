@@ -1,0 +1,40 @@
+# Use the same base image as production for consistency
+FROM --platform=linux/amd64 izzadev/node-22-with-pdf2htmlex
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update -y && apt-get install -y openssl
+
+# Install pnpm
+RUN npm install -g pnpm@10.10.0
+
+# Install nodemon for auto-restarting
+RUN npm install -g nodemon
+
+# Copy package files
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml ./
+COPY patches ./patches
+
+# Install dependencies
+RUN pnpm install
+
+# Generate Prisma client
+COPY prisma ./prisma
+RUN pnpx prisma generate
+
+# Set environment variables
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+# ENV DATABASE_URL=file:./prisma/dev.db
+ENV CHECKPOINT_DISABLE=1
+ENV DISABLE_PRISMA_TELEMETRY=true
+
+# Create uploads directory
+RUN mkdir -p /app/uploads
+
+# Expose port
+EXPOSE 3000
+
+# Command to start development server with hot reloading
+CMD ["pnpm", "dev"]

@@ -268,7 +268,7 @@ const TranslationPage = () => {
           </div>
 
           <div className="text-center text-gray-500 text-sm">
-            <p>Please don't close this page while your PDFs are being translated.</p>
+            <p>Please don&apos;t close this page while your PDFs are being translated.</p>
             <p className="mt-1">The process may take a few minutes depending on the size and number of files.</p>
           </div>
         </div>

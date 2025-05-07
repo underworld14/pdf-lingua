@@ -1,5 +1,5 @@
 # Base stage with pnpm installed
-FROM node:22-alpine AS base
+FROM --platform=linux/amd64 izzadev/node-22-with-pdf2htmlex:latest AS base
 WORKDIR /app
 
 # Install pnpm
@@ -30,7 +30,7 @@ COPY . .
 RUN pnpx prisma generate
 
 # Build the Next.js application
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NEXT_TELEMETRY_DISABLED=true
 RUN pnpm build
 
 # Stage 3: Runner
@@ -42,9 +42,9 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
 # Set up environment variables
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV PORT 3000
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
 ENV DATABASE_URL=file:./dev.db
 ENV CHECKPOINT_DISABLE=1
 ENV DISABLE_PRISMA_TELEMETRY=true
@@ -54,7 +54,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/next.config.ts ./
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma/
 
 # Create uploads directory and make it writable for the nextjs user
 RUN mkdir -p /app/uploads && chown -R nextjs:nodejs /app/uploads
