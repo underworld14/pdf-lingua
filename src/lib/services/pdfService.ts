@@ -48,7 +48,6 @@ export class PdfService {
 
       // Execute pdf2htmlEX command with options for better formatting
       // --zoom 1.3: Increase zoom level for better readability
-      // --embed cfijo: Embed necessary resources (CSS, fonts, images, JS, outline)
       const command = `pdf2htmlEX --zoom 1.3 ${filePath} --dest-dir ${tempDir}`;
 
       console.log(`Executing command: ${command}`);

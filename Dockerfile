@@ -1,65 +1,61 @@
-# Base stage with pnpm installed
-FROM --platform=linux/amd64 izzadev/node-22-with-pdf2htmlex:latest AS base
+FROM --platform=linux/amd64 izzadev/node22-with-pdf2htmlex:latest AS base
+
+# Next.js/Prisma app lives here
 WORKDIR /app
+
+# Set production environment
+ENV NODE_ENV="production"
 
 # Install pnpm
-RUN npm install -g pnpm@10.10.0
+ARG PNPM_VERSION=10.10.0
+RUN npm install -g pnpm@$PNPM_VERSION
 
-# Stage 1: Dependencies
-FROM base AS deps
-WORKDIR /app
 
-# Copy package files
-COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml ./
+# Throw-away build stage to reduce size of final image
+FROM base AS build
 
-# Copy patches
+# Install packages needed to build node modules
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y build-essential node-gyp openssl pkg-config python-is-python3
+
+# Install node modules
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY prisma ./prisma
 COPY patches ./patches
+RUN pnpm install --frozen-lockfile --prod=false
 
-# Install dependencies using pnpm
-RUN pnpm install --frozen-lockfile
+# Generate Prisma Client
+RUN npx prisma generate
 
-# Stage 2: Builder
-FROM base AS builder
-WORKDIR /app
-
-# Copy dependencies from the deps stage
-COPY --from=deps /app/node_modules ./node_modules
+# Copy application code
 COPY . .
 
-# Generate Prisma client
-RUN pnpx prisma generate
+# Build application
+RUN npx next build --experimental-build-mode compile
 
-# Build the Next.js application
-ENV NEXT_TELEMETRY_DISABLED=true
-RUN pnpm build
+# Remove development dependencies
+RUN pnpm prune --prod
 
-# Stage 3: Runner
-FROM base AS runner
-WORKDIR /app
 
-# Create a non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+# Final stage for app image
+FROM base
 
-# Set up environment variables
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
-ENV DATABASE_URL=file:./dev.db
-ENV CHECKPOINT_DISABLE=1
-ENV DISABLE_PRISMA_TELEMETRY=true
+# Install packages needed for deployment
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y openssl && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# Copy necessary files for the application
-COPY --from=builder --chown=nextjs:nodejs /app/next.config.ts ./
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma/
+# Copy built application
+COPY --from=build /app /app
 
-# Create uploads directory and make it writable for the nextjs user
-RUN mkdir -p /app/uploads && chown -R nextjs:nodejs /app/uploads
+# Setup sqlite3 on a separate volume
+RUN mkdir -p /data
+VOLUME /data
 
-USER nextjs
+# Entrypoint prepares the database.
+ENTRYPOINT [ "/app/docker-entrypoint.js" ]
+
+# Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
-
-ENTRYPOINT ["node", "server.js"]
+ENV DATABASE_URL="file:///data/sqlite.db"
+CMD [ "pnpm", "run", "start" ]

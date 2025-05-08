@@ -1,39 +1,36 @@
-version: '3.8'
-
 services:
-  app-dev:
+  app:
     build:
       context: .
       dockerfile: Dockerfile.dev
+    # Explicitly clear the entrypoint from the base image
+    entrypoint: []
+    # Use our custom dev entrypoint script
+    command: ["/bin/bash", "/app/docker-dev-entrypoint.sh"]
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=development
-      - NEXT_TELEMETRY_DISABLED=1
-      # - DATABASE_URL=file:./prisma/dev.db
-      - CHECKPOINT_DISABLE=1
-      - DISABLE_PRISMA_TELEMETRY=true
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
     env_file:
       - .env
     volumes:
-      # Mount the source code for hot reloading
       - ./:/app
-      # Exclude node_modules from the mount to use the container's node_modules
-      - /app/node_modules
-      - /app/.next
-      # Persistent volumes
+      - node_modules:/app/node_modules
       - uploads:/app/uploads
-      - sqlite-data:/app/prisma
+      - db_data:/data
     restart: unless-stopped
     networks:
       - app_network
-    # Use nodemon or Next.js dev server command in Dockerfile.dev
+    # For Next.js Hot Module Replacement (HMR)
+    stdin_open: true
+    tty: true
 
 volumes:
+  node_modules:
   uploads:
-    # Persistent volume for uploaded files
-  sqlite-data:
-    # Persistent volume for SQLite database
+  db_data:
 
 networks:
   app_network:
