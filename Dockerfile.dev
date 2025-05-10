@@ -1,43 +1,39 @@
+# Use the same base image as production for consistency
 FROM --platform=linux/amd64 izzadev/node22-with-pdf2htmlex:latest
-
-# Next.js/Prisma app lives here
 WORKDIR /app
 
-# Set development environment
-ENV NODE_ENV="development"
+# Install system dependencies
+RUN apt-get update -y && apt-get install -y openssl
 
 # Install pnpm
-ARG PNPM_VERSION=10.10.0
-RUN npm install -g pnpm@$PNPM_VERSION
+RUN npm install -g pnpm@10.10.0
 
-# Prepare database directory
-RUN mkdir -p /data
-VOLUME /data
+# Install nodemon for auto-restarting
+RUN npm install -g nodemon
 
-# Install basic development tools
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y \
-    build-essential \
-    openssl \
-    python-is-python3 \
-    vim \
-    nano \
-    git \
-    && rm -rf /var/lib/apt/lists /var/cache/apt/archives
+# Copy package files
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml ./
+COPY patches ./patches
 
-# Setup for Next.js hot reloading
-ENV WATCHPACK_POLLING=true
-ENV CHOKIDAR_USEPOLLING=true
+# Install dependencies
+RUN pnpm install
 
-# Default database URL
-ENV DATABASE_URL="file:///data/sqlite.db"
+# Generate Prisma client
+COPY prisma ./prisma
+RUN pnpx prisma generate
 
-# Override the entrypoint from the base image
-ENTRYPOINT []
+# Set environment variables
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV CHECKPOINT_DISABLE=1
+ENV DISABLE_PRISMA_TELEMETRY=true
 
-# Create shell script for development startup
-COPY ./docker-dev-entrypoint.sh /app/docker-dev-entrypoint.sh
-RUN chmod +x /app/docker-dev-entrypoint.sh
+# Create uploads directory
+RUN mkdir -p /app/uploads
 
-# Start command for development
-CMD ["/app/docker-dev-entrypoint.sh"]
+# Expose port
+EXPOSE 3000
+
+# Command to start development server with hot reloading
+CMD ["pnpm", "dev"]
