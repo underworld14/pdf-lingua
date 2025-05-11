@@ -5,5 +5,3 @@ onlyBuiltDependencies:
   - prisma
   - sharp
   - unrs-resolver
-patchedDependencies:
-  pdf-parse: patches/pdf-parse.patch
